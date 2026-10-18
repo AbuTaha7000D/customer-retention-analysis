@@ -2,12 +2,14 @@
 # Pinned to versions verified in the project environment (Python 3.14.8).
 #
 # Direct imports:
-#   scripts/prepare_data.py  -> pandas, numpy  (pandas.read_excel uses openpyxl for .xlsx)
-#   scripts/load_database.py -> standard library only (csv, sqlite3, pathlib, sys)
+#   scripts/prepare_data.py          -> pandas, numpy  (pandas.read_excel uses openpyxl for .xlsx)
+#   scripts/load_database.py         -> standard library only (csv, sqlite3, pathlib, sys)
+#   scripts/create_visualizations.py -> matplotlib, numpy (standard-library sqlite3)
 #
-# matplotlib / ipykernel are intentionally NOT listed: no script, notebook,
-# or chart uses them. Transitive dependencies (e.g. python-dateutil, tzdata,
-# et-xmlfile) are resolved automatically by pip.
+# ipykernel is intentionally NOT listed: no notebook is included in this project.
+# Transitive dependencies (e.g. python-dateutil, tzdata, et-xmlfile, contourpy,
+# kiwisolver, pillow) are resolved automatically by pip.
 pandas==3.0.6
 numpy==2.5.4
 openpyxl==3.1.5
+matplotlib==3.11.2

@@ -11,7 +11,7 @@
 --   * LIMITATION: Gross Purchase Value is a GROSS measure. Cancellations and
 --     returns are NOT netted against purchases because reliable
 --     cancellation-to-original matching was not established from the data.
---   * LIMITATION: 3,710 invoices have no CustomerID at all (30,921 rows are
+--   * LIMITATION: 3,710 invoices have no CustomerID at all (135,080 rows are
 --     unattributable to a customer); they are excluded from customer-level
 --     metrics but included in the whole-table counts where explicitly noted.
 --   * Exclusion/flag counts can overlap (e.g. a row can be both a
