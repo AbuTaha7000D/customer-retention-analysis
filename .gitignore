@@ -1,0 +1,41 @@
+# Downloaded and raw data
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Python virtual environments
+venv/
+.env/
+.env*/
+.venv/
+ENV/
+env/
+
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# OS/editor temporary files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.tmp/
+temp/

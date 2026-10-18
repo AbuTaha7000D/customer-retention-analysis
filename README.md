@@ -1,0 +1,165 @@
+# Customer Retention, Repeat Purchase, RFM Segmentation & Cohort Analysis
+
+## Project Overview
+
+This project analyses the UCI Online Retail dataset to study customer
+retention, repeat purchasing, RFM (Recency, Frequency, Monetary) segmentation,
+and cohort retention. It consists of two Python stages (data preparation and
+SQLite loading) followed by a suite of read-only SQL analyses. All results are
+aggregate; no customer identifiers are published.
+
+## Dataset Provenance & Attribution
+
+- **Dataset**: UCI Online Retail (dataset 352)
+- **Source**: <https://archive.ics.uci.edu/dataset/352/online+retail>
+- **DOI**: <https://doi.org/10.24432/C5BW33>
+- **License**: CC BY 4.0 — attribution required (Chen, D. (2015). Online Retail
+  [Dataset]. UCI Machine Learning Repository.).
+- **Raw archive**: `data/raw/online_retail.zip` (contains `Online Retail.xlsx`)
+- **Raw archive SHA-256**:
+  `f5385cbb54bbebf7196389109c6b0621faab0c304e3702548165e71c84aede8b`
+
+The raw archive is treated as read-only: it is read in memory by the preparation
+script and is never modified or extracted.
+
+## Tools & Environment
+
+- **Python 3.14.8**
+- **pandas** — data preparation
+- **numpy** — numeric support in preparation
+- **openpyxl** — Excel engine used by `pandas.read_excel`
+- **SQLite** — local analysis database (via Python's standard-library `sqlite3`)
+
+Third-party dependencies are pinned in `requirements.txt`. `matplotlib` and
+`ipykernel` are not used: no charts, notebooks, or visualization pipeline are
+included in this project.
+
+## Setup
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+## Reproduce the Analysis
+
+Run the following from the repository root, in order.
+
+1. Prepare the data (reads the raw ZIP in memory; writes the prepared CSV and a
+   summary report):
+   ```bash
+   python scripts/prepare_data.py
+   ```
+2. Build and validate the SQLite database:
+   ```bash
+   python scripts/load_database.py
+   ```
+3. Run the SQL analyses (read-only) against
+   `data/processed/customer_retention.sqlite3`, in this order:
+   - `sql/01_data_exploration.sql`
+   - `sql/02_customer_purchase_summary.sql`
+   - `sql/03_rfm_scoring_diagnostics.sql`
+   - `sql/04_rfm_scoring.sql`
+   - `sql/05_cohort_retention.sql`
+   - `sql/06_business_findings.sql`
+
+### Running the SQL files
+
+The SQL files are plain statements; there is no separate SQL-runner script. If
+the SQLite command-line tool is available, run a single file in read-only mode:
+
+```bash
+sqlite3 -readonly data/processed/customer_retention.sqlite3 < sql/04_rfm_scoring.sql
+```
+
+or run them all in order:
+
+```bash
+for f in sql/0*.sql; do
+  echo "===== $f ====="
+  sqlite3 -readonly data/processed/customer_retention.sqlite3 < "$f"
+done
+```
+
+If the `sqlite3` CLI is not installed, the same files can be executed with
+Python's standard library:
+
+```bash
+python - <<'PY'
+import sqlite3, pathlib
+con = sqlite3.connect("file:data/processed/customer_retention.sqlite3?mode=ro", uri=True)
+for f in sorted(pathlib.Path("sql").glob("0*.sql")):
+    print(f"===== {f} =====")
+    stmt = []
+    for line in f.read_text().splitlines():
+        if line.lstrip().startswith("--"):
+            continue
+        stmt.append(line)
+        if line.rstrip().endswith(";"):
+            sql = "\n".join(stmt).rstrip(";")
+            if sql.strip():
+                for row in con.execute(sql):
+                    print(row)
+            stmt = []
+PY
+```
+
+## Generated Outputs
+
+- `data/processed/online_retail_prepared.csv` — prepared transaction data with
+  quality flags, the eligible-purchase-line indicator, and gross purchase value.
+- `data/processed/customer_retention.sqlite3` — SQLite database (table
+  `prepared_transactions`) used by the SQL analyses.
+- `reports/data_preparation_summary.md` — summary written by the preparation stage.
+
+## Files Excluded from Git
+
+`.gitignore` intentionally excludes raw and generated data (large or
+third-party), while preserving directory placeholders:
+
+- `data/raw/*` and `data/processed/*` — raw archive, prepared CSV, and SQLite
+  database (except the `.gitkeep` placeholders).
+- `*.sqlite` / `*.sqlite3` / `*.db` — database files.
+- `.venv/` (and other virtual-environment directories) and Python caches.
+
+## Implemented Analyses
+
+- `scripts/prepare_data.py` — adds data-quality flags, the eligible-purchase-line
+  indicator, and gross purchase value; validates against verified audit counts.
+- `scripts/load_database.py` — rebuilds the SQLite table and runs SQL-level
+  validation checks.
+- `sql/01_data_exploration.sql` — overall counts, monthly/country coverage, and
+  eligibility/flag counts.
+- `sql/02_customer_purchase_summary.sql` — per-customer aggregation with
+  frequency, monetary, and recency diagnostics, plus duplicate sensitivity.
+- `sql/03_rfm_scoring_diagnostics.sql` — RFM distribution diagnostics supporting
+  the scoring design.
+- `sql/04_rfm_scoring.sql` — RFM scoring into the documented R/F/M bands, with
+  validation.
+- `sql/05_cohort_retention.sql` — calendar-month cohort retention matrix.
+- `sql/06_business_findings.sql` — repeat-purchase, revenue-concentration,
+  recency-band, cohort age-1/age-3, monthly seasonality, country, and
+  duplicate-sensitivity findings, with aggregate reconciliations.
+
+All SQL is aggregate and read-only. Populations, definitions, and the Recency
+reference date (`2011-12-10`) are documented in
+`reports/data_quality_and_methodology.md`.
+
+## Key Methodology Caveats
+
+- **Gross, not net**: Monetary value is Gross Purchase Value (GPV); cancellations
+  and returns are not netted because reliable matching to original transactions
+  was not established.
+- **Missing CustomerIDs are excluded** from customer-level analysis (no
+  imputation); 3,710 invoices are entirely unattributable.
+- **Unequal observation windows**: cohorts have different follow-up lengths and
+  the first/last months are partial; unobservable cohort-age cells are NULL/NA,
+  never zero, and observed repeat activity is not the same as permanent churn.
+- **Duplicates are flagged, not deleted** and are not assumed to be errors;
+  duplicate-exclusion sensitivity is limited to the metrics explicitly tested.
+
+## License
+
+The dataset is licensed CC BY 4.0 (attribution above). No separate license is
+declared for this repository's code.
